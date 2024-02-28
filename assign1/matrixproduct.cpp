@@ -156,8 +156,14 @@ int main (int argc, char *argv[])
 		if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
 
 		switch (op){
-			case 1: 
-				OnMult(lin, col);
+			case 1:
+				for(int i=0;i<10;i++){
+					OnMult(lin, col);
+					ret = PAPI_stop(EventSet, values);
+  					if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+  					printf("L1 DCM: %lld \n",values[0]);
+  					printf("L2 DCM: %lld \n",values[1]);
+				}
 				break;
 			case 2:
 				OnMultLine(lin, col);  
