@@ -1,15 +1,15 @@
 C/C++ with Papi
     600x600:
         Times:
-            1. 0.428 seconds
-            2. 0.417 seconds
-            3. 0.395 seconds
-            4. 0.494 seconds
-            5. 0.410 seconds
-            6. 0.387 seconds
-            7. 0.382 seconds
-            8. 0.381 seconds
-            9. 0.375 seconds
-           10. 0.376 seconds
+            1. 0.393 seconds
+            2. 0.402 seconds
+            3. 0.439 seconds
+            4. 0.416 seconds
+            5. 0.441 seconds
+            6. 0.419 seconds
+            7. 0.399 seconds
+            8. 0.0.376 seconds
+            9. 0.389 seconds
+           10. 0.401 seconds
         Cache: 1.   L1:
                     L2:
