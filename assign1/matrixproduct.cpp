@@ -64,8 +64,8 @@ void OnMult(int m_ar, int m_br)
 			cout << phc[j] << " ";
 	}
 	cout << endl;
-
-    free(pha);
+    
+	free(pha);
     free(phb);
     free(phc);
 	
@@ -152,17 +152,22 @@ int main (int argc, char *argv[])
 
 
 		// Start counting
-		ret = PAPI_start(EventSet);
-		if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+		
 
 		switch (op){
 			case 1:
 				for(int i=0;i<10;i++){
+					ret = PAPI_start(EventSet);
+					if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
 					OnMult(lin, col);
 					ret = PAPI_stop(EventSet, values);
   					if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
   					printf("L1 DCM: %lld \n",values[0]);
   					printf("L2 DCM: %lld \n",values[1]);
+
+					ret = PAPI_reset( EventSet );
+					if ( ret != PAPI_OK )
+						std::cout << "FAIL reset" << endl; 
 				}
 				break;
 			case 2:
