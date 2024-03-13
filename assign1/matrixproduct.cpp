@@ -84,10 +84,11 @@ void OnMultLine(int m_ar, int m_br)
 
     Time1 = clock();
 
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(i=0; i<m_ar; i++)
     {    for( k=0; k<m_ar; k++ )
-        { for( j=0; j<m_br; j++)
+        { 
+		for( j=0; j<m_br; j++)
             {    
                 phc[i*m_ar+j] += pha[i*m_ar+k] * phb[k*m_br+j];
             }
