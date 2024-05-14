@@ -3,12 +3,14 @@ import java.net.*;
 import java.util.*;
 
 public class TimeServer {
-    private static final int PORT = 12345;
-    private static final Database database = new Database();
 
     public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Server is listening on port " + PORT);
+        if (args.length < 1) return;
+
+        int port = Integer.parseInt(args[0]);
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("Server is listening on port " + port);
 
             while (true) {
                 Socket socket = serverSocket.accept();
@@ -65,15 +67,14 @@ public class TimeServer {
 
         // Method to handle login
         private void handleLogin(BufferedReader reader, PrintWriter writer) throws IOException {
-            // Authentication logic
+            // Authentication logic (replace with your own authentication mechanism)
             writer.println("Please enter your username:");
             String username = reader.readLine();
             writer.println("Please enter your password:");
             String password = reader.readLine();
 
-            // Validate username and password using the Database class
-            boolean authenticated = database.validateUser(username, password);
-            if (authenticated) {
+            // Simulate validation (replace with your own validation logic)
+            if ("admin".equals(username) && "password".equals(password)) {
                 writer.println("Login successful!");
             } else {
                 writer.println("Login failed. Invalid username or password.");
@@ -82,19 +83,14 @@ public class TimeServer {
 
         // Method to handle registration
         private void handleRegistration(BufferedReader reader, PrintWriter writer) throws IOException {
-            // Registration logic
+            // Registration logic (replace with your own registration mechanism)
             writer.println("Please enter a new username:");
             String username = reader.readLine();
             writer.println("Please enter a password:");
             String password = reader.readLine();
 
-            // Register the new user using the Database class
-            boolean registered = database.registerUser(username, password);
-            if (registered) {
-                writer.println("Registration successful!");
-            } else {
-                writer.println("Registration failed. Username already exists.");
-            }
+            // Simulate registration (replace with your own registration logic)
+            writer.println("Registration successful!");
         }
     }
 }
