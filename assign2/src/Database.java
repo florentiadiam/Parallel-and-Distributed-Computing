@@ -1,58 +1,102 @@
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Database {
-    private static final String FILENAME = "userdata.txt";
-    private Map<String, String> userCredentials;
+    private List<ClientSide> clients;
+    private final String filename = "clients.json";
 
+    // Constructor to initialize the database
     public Database() {
-        this.userCredentials = loadUserDataFromFile();
+        this.clients = new ArrayList<>();
+        loadDatabaseFromFile();
     }
 
-    // Load user data from file
-    private Map<String, String> loadUserDataFromFile() {
-        Map<String, String> userData = new HashMap<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(FILENAME))) {
+    // Method to add a new client to the database
+    public void addClient(ClientSide client) {
+        clients.add(client);
+        saveDatabaseToFile();
+    }
+
+    // Method to retrieve a client from the database by username
+    public ClientSide getClient(String username) {
+        for (ClientSide client : clients) {
+            if (client.getUsername().equals(username)) {
+                return client;
+            }
+        }
+        return null; // Client not found
+    }
+
+    // Method to check if a username exists in the database
+    public boolean usernameExists(String username) {
+        for (ClientSide client : clients) {
+            if (client.getUsername().equals(username)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Method to remove a client from the database
+    public void removeClient(String username) {
+        clients.removeIf(client -> client.getUsername().equals(username));
+        saveDatabaseToFile();
+    }
+
+    // Method to load database from a JSON file
+    private void loadDatabaseFromFile() {
+        try {
+            StringBuilder jsonContent = new StringBuilder();
+            BufferedReader br = new BufferedReader(new FileReader(filename));
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(":");
-                if (parts.length == 2) {
-                    userData.put(parts[0], parts[1]);
-                }
+                jsonContent.append(line).append("\n");
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return userData;
-    }
+            br.close();
 
-    // Save user data to file
-    private void saveUserDataToFile() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILENAME))) {
-            for (Map.Entry<String, String> entry : userCredentials.entrySet()) {
-                bw.write(entry.getKey() + ":" + entry.getValue());
-                bw.newLine();
+            JSONArray jsonArray = new JSONArray(jsonContent.toString());
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                String username = jsonObject.getString("username");
+                String password = jsonObject.getString("password");
+                String token = jsonObject.getString("token");
+                int rank = jsonObject.getInt("rank");
+                // Assuming you have a constructor in ClientSide class
+                clients.add(new ClientSide(username, password, token, rank));
             }
+        } catch (IOException | JSONException e) {
+            System.err.println("Error loading database from file: " + e.getMessage());
+        }
+    }
+
+    // Method to save database to a JSON file
+    private void saveDatabaseToFile() {
+        JSONArray jsonArray = new JSONArray();
+        for (ClientSide client : clients) {
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject.put("username", client.getUsername());
+                jsonObject.put("password", client.getPassword());
+                jsonObject.put("token", client.getToken());
+                jsonObject.put("rank", client.getRank());
+                jsonArray.put(jsonObject);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        try (FileWriter file = new FileWriter(filename)) {
+            file.write(jsonArray.toString());
+            file.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error saving database to file: " + e.getMessage());
         }
     }
 
-    // Register a new user with username and password
-    public boolean registerUser(String username, String password) {
-        if (userCredentials.containsKey(username)) {
-            // Username already exists
-            return false;
-        } else {
-            userCredentials.put(username, password);
-            saveUserDataToFile(); // Save user data to file
-            return true;
-        }
-    }
-
-    // Validate username and password for login
-    public boolean validateUser(String username, String password) {
-        String storedPassword = userCredentials.get(username);
-        return storedPassword != null && storedPassword.equals(password);
-    }
+    // Other methods for database operations can be added as needed
 }
+
