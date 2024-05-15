@@ -2,35 +2,28 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-//to implement ranked levels and when queue time is high put players with different ranks
 public class GameServer {
-    private static Queue<Socket> clientQueue = new LinkedList<>();
+    private static Queue<Socket> simpleQueue = new LinkedList<>();
+    private static Queue<Socket> rankQueue = new LinkedList<>();
     private static String mode;
     private static int batchSize = 4; // Change this to the desired batch size
     private static List<Game> games = new ArrayList<>();
     private static Map<Socket, Integer> playerLevels = new HashMap<>();
+    private static Map<String, String> players = new HashMap<>(); // Map to store usernames and passwords
+    private static Map<String, Socket> sessionTokens = new HashMap<>(); // Map to store session tokens
 
     public static void main(String[] args) {
         if (args.length < 1) return;
 
         int port = Integer.parseInt(args[0]);
+        loadPlayers();
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-
             System.out.println("Server is listening on port " + port);
 
             while (true) {
                 Socket socket = serverSocket.accept();
-
-                // Prompt the client with mode selection options
-                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-                writer.println("Welcome to the game server!");
-                writer.println("Choose a mode:");
-                writer.println("1. Simple");
-                writer.println("2. Rank");
-                writer.println("Enter your choice (1 or 2):");
-
-                // Handle client connection
+                login(socket);
                 handleClient(socket);
             }
 
@@ -41,54 +34,152 @@ public class GameServer {
     }
 
     private static void handleClient(Socket socket) {
-        try {
-            InputStream input = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-            String choice = reader.readLine();
+        new Thread(() -> {
+            try {
+                InputStream input = socket.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 
-            // Process client's mode selection
-            if (choice.equals("1")) {
-                mode = "simple";
-                System.out.println("Simple mode selected.");
-            } else if (choice.equals("2")) {
-                mode = "rank";
-                System.out.println("Rank mode selected.");
-            } else {
-                System.out.println("Invalid mode selection.");
-                return;
+                String choice = reader.readLine();
+
+                synchronized (simpleQueue) {
+                    synchronized (rankQueue) {
+                        // Process client's mode selection
+                        if (choice.equals("1")) {
+                            mode = "simple";
+                            System.out.println("Simple mode selected.");
+                            simpleQueue.add(socket);
+                        } else if (choice.equals("2")) {
+                            mode = "rank";
+                            System.out.println("Rank mode selected.");
+                            rankQueue.add(socket);
+                        } else {
+                            System.out.println("Invalid mode selection.");
+                            return;
+                        }
+                    }
+                }
+
+                // Inform the client about their status in the queue
+                writer.println("You are in the queue. Please wait for other players.");
+
+                // Generate and send session token
+                String token = UUID.randomUUID().toString();
+                sessionTokens.put(token, socket);
+                writer.println("Your session token is: " + token);
+
+                // Print the updated queue in the terminal
+                printQueue();
+
+                // Handle client connection based on the chosen mode
+                if (mode.equals("simple")) {
+                    handleSimpleMode();
+                } else if (mode.equals("rank")) {
+                    handleRankMode();
+                }
+
+                // Listen for client disconnection
+                while (true) {
+                    if (reader.readLine() == null) {
+                        removeClient(socket);
+                        break;
+                    }
+                }
+
+            } catch (IOException ex) {
+                System.out.println("Client disconnected: " + ex.getMessage());
+                removeClient(socket);
+            }
+        }).start();
+    }
+
+    private static void removeClient(Socket socket) {
+        synchronized (simpleQueue) {
+            synchronized (rankQueue) {
+                if (simpleQueue.remove(socket) || rankQueue.remove(socket)) {
+                    playerLevels.remove(socket); // Remove player's level when disconnected
+                    System.out.println("Client disconnected and removed from queue.");
+                    printQueue();
+                }
+            }
+        }
+    }
+
+    private static void login(Socket socket) {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+
+            // Ask if the client wants to reconnect using a token
+            writer.println("Do you want to reconnect using a session token? (yes/no)");
+            String reconnectChoice = reader.readLine();
+
+            if (reconnectChoice.equalsIgnoreCase("yes")) {
+                writer.println("Enter your session token:");
+                String token = reader.readLine();
+
+                if (sessionTokens.containsKey(token)) {
+                    Socket existingSocket = sessionTokens.get(token);
+                    writer.println("Reconnected successfully with token: " + token);
+                    // Handle reconnection logic if needed
+                    return;
+                } else {
+                    writer.println("Invalid token. Please login normally.");
+                }
             }
 
-            // Add the new client to the queue
-            clientQueue.add(socket);
+            // Proceed with normal login
+            writer.println("Enter your username:");
+            String username = reader.readLine();
+            writer.println("Enter your password:");
+            String password = reader.readLine();
 
-            // Inform the client about their status in the queue
-            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-            writer.println("You are in the queue. Please wait for other players.");
+            if (players.containsKey(username)) {
+                String storedPassword = players.get(username);
+                if (storedPassword.equals(password)) {
+                    writer.println("Login successful! Choose a mode:");
+                    writer.println("1. Simple");
+                    writer.println("2. Rank");
 
-            // Print the updated queue in the terminal
-            printQueue();
+                    // Generate and send session token
+                    String token = UUID.randomUUID().toString();
+                    sessionTokens.put(token, socket);
+                    writer.println("Your session token is: " + token);
 
-            // Handle client connection based on the chosen mode
-            if (mode.equals("simple")) {
-                handleSimpleMode();
-            } else if (mode.equals("rank")) {
-                handleRankMode();
+                } else {
+                    writer.println("Incorrect password. Please try again.");
+                    socket.close(); // Close the connection
+                }
+            } else {
+                writer.println("Username not found. Please register or try again.");
+                socket.close(); // Close the connection
             }
         } catch (IOException ex) {
-            System.out.println("Client disconnected: " + ex.getMessage());
-            clientQueue.remove(socket);
-            playerLevels.remove(socket); // Remove player's level when disconnected
-            printQueue();
+            System.out.println("Error during login: " + ex.getMessage());
+        }
+    }
+
+    private static void loadPlayers() {
+        try (BufferedReader br = new BufferedReader(new FileReader("players.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(" ");
+                if (parts.length == 2) {
+                    players.put(parts[0], parts[1]); // Username as key, password as value
+                }
+            }
+        } catch (IOException ex) {
+            System.out.println("Error loading players: " + ex.getMessage());
         }
     }
 
     private static void handleSimpleMode() {
-        if (clientQueue.size() >= batchSize) {
+        if (simpleQueue.size() >= batchSize) {
             List<Socket> batch = new ArrayList<>();
 
             // Create a batch of clients for the game instance
             for (int i = 0; i < batchSize; i++) {
-                batch.add(clientQueue.poll());
+                batch.add(simpleQueue.poll());
             }
 
             // Inform each client that the game is starting
@@ -113,15 +204,13 @@ public class GameServer {
     }
 
     private static void handleRankMode() {
-        if (clientQueue.size() >= batchSize) {
+        if (rankQueue.size() >= batchSize) {
             List<Socket> batch = new ArrayList<>();
-            List<Socket> team = new ArrayList<>();
 
             // Create a batch of clients for the game instance
             for (int i = 0; i < batchSize; i++) {
-                Socket clientSocket = clientQueue.poll();
+                Socket clientSocket = rankQueue.poll();
                 batch.add(clientSocket);
-                team.add(clientSocket);
             }
 
             // Matchmaking algorithm to form teams with similar levels
@@ -161,7 +250,7 @@ public class GameServer {
             }
 
             // Create a new game instance with the formed teams
-            Game game = new Game(team1, team2); // Pass teams instead of batchSize
+            Game game = new Game(team1, team2);
             games.add(game);
 
             System.out.println("New game started with teams of " + batchSize / 2 + " players.");
@@ -183,24 +272,25 @@ public class GameServer {
     }
 
     private static void printQueue() {
-        System.out.println("Current clients in the queue: " + clientQueue.size());
+        System.out.println("Current clients in the simple queue: " + simpleQueue.size());
+        System.out.println("Current clients in the rank queue: " + rankQueue.size());
     }
 
     private static class Game {
-            private List<Socket> team1;
-            private List<Socket> team2;
-        
-            // Constructor for simple mode
-            public Game(List<Socket> batch) {
-                this.team1 = batch;
-                this.team2 = new ArrayList<>();
-            }
-        
-            // Constructor for rank mode
-            public Game(List<Socket> team1, List<Socket> team2) {
-                this.team1 = team1;
-                this.team2 = team2;
-            }
+        private List<Socket> team1;
+        private List<Socket> team2;
+
+        // Constructor for simple mode
+        public Game(List<Socket> batch) {
+            this.team1 = batch;
+            this.team2 = new ArrayList<>();
+        }
+
+        // Constructor for rank mode
+        public Game(List<Socket> team1, List<Socket> team2) {
+            this.team1 = team1;
+            this.team2 = team2;
+        }
 
         public void start() {
             // Simulate game logic
