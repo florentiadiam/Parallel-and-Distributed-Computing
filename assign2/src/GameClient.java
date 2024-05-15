@@ -1,6 +1,5 @@
 import java.io.*;
 import java.net.*;
-import java.util.*;
 
 public class GameClient {
     public static void main(String[] args) {
@@ -23,24 +22,15 @@ public class GameClient {
                 System.out.println(serverReader.readLine()); // "Enter your session token:"
                 String token = reader.readLine();
                 writer.println(token);
-                System.out.println(serverReader.readLine()); // "Reconnected successfully with token: " or "Invalid token. Please login normally."
-            }
-
-            if (!reconnectChoice.equalsIgnoreCase("yes") || serverReader.readLine().contains("Invalid token")) {
-                // Proceed with normal login
-                System.out.println(serverReader.readLine()); // "Enter your username:"
-                String username = reader.readLine();
-                writer.println(username);
-
-                System.out.println(serverReader.readLine()); // "Enter your password:"
-                String password = reader.readLine();
-                writer.println(password);
-
-                System.out.println(serverReader.readLine()); // "Login successful! Choose a mode:" or error message
-
-                // Read session token
-                System.out.println(serverReader.readLine()); // "Your session token is: ..."
-                System.out.println(serverReader.readLine()); // Token value
+                String reconnectionResponse = serverReader.readLine();
+                if (reconnectionResponse.contains("Reconnected successfully")) {
+                    System.out.println(reconnectionResponse);
+                } else {
+                    System.out.println(reconnectionResponse); // "Invalid token. Please login normally."
+                    handleNormalLogin(reader, writer, serverReader);
+                }
+            } else {
+                handleNormalLogin(reader, writer, serverReader);
             }
 
             // Choose a mode
@@ -57,6 +47,27 @@ public class GameClient {
             System.out.println("Server not found: " + ex.getMessage());
         } catch (IOException ex) {
             System.out.println("I/O error: " + ex.getMessage());
+        }
+    }
+
+    private static void handleNormalLogin(BufferedReader reader, PrintWriter writer, BufferedReader serverReader) throws IOException {
+        System.out.println(serverReader.readLine()); // "Enter your username:"
+        String username = reader.readLine();
+        writer.println(username);
+
+        System.out.println(serverReader.readLine()); // "Enter your password:"
+        String password = reader.readLine();
+        writer.println(password);
+
+        String loginResponse = serverReader.readLine();
+        if (loginResponse.contains("Login successful")) {
+            System.out.println(loginResponse);
+            // Read session token
+            System.out.println(serverReader.readLine()); // "Your session token is: ..."
+            System.out.println(serverReader.readLine()); // Token value
+        } else {
+            System.out.println(loginResponse);
+            handleNormalLogin(reader, writer, serverReader); // Retry login
         }
     }
 }
