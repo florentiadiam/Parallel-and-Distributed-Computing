@@ -1,23 +1,13 @@
-import java.io.*;
+/*import java.io.*;
 import java.net.*;
-import java.util.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
 
 public class Game {
     private Socket player1;
     private Socket player2;
-    private Map<Socket, String> playerChoices;
     private Lock lock;
-    private Condition gameReady;
 
     public Game(Socket player1, Socket player2, Lock lock) {
         this.player1 = player1;
@@ -25,24 +15,25 @@ public class Game {
         this.lock = lock;
     }
 
-    public void start(Socket player1, Socket player2, Lock lock) {
+    public void start() {
         try {
-            // this.lock.lock();
             // Prompt player 1 for their choice
-            InputStream input = player1.getInputStream();
-            BufferedReader reader1 = new BufferedReader(new InputStreamReader(input));
+            //InputStream input = player1.getInputStream();
+            BufferedReader reader1 = new BufferedReader(new InputStreamReader(System.in));
             PrintWriter writer1 = new PrintWriter(player1.getOutputStream(), true);
             
             writer1.println("Enter your choice (1 for rock, 2 for paper, 3 for scissors): ");
+            String input = reader1.readLine();
+            int choice1 = Integer.parseInt(input);
+            System.out.println("Player 1 chose option " + choice1 + ", wait for the other player's choice.");
 
-            String choice1 = reader1.readLine();
-            
             // Prompt player 2 for their choice
             PrintWriter writer2 = new PrintWriter(player2.getOutputStream(), true);
             writer2.println("Enter your choice (1 for rock, 2 for paper, 3 for scissors): ");
             
             BufferedReader reader2 = new BufferedReader(new InputStreamReader(player2.getInputStream()));
-            String choice2 = reader2.readLine();
+            String input = reader2.readLine();
+            int choice2 = Integer.parseInt(input);
 
             // Determine the winner based on the choices
             String result = determineWinner(choice1, choice2);
@@ -77,3 +68,4 @@ public class Game {
         }
     }
 }
+*/

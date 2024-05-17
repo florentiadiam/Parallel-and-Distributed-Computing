@@ -12,7 +12,7 @@ public class GameServer {
     private static Queue<Socket> rankQueue = new LinkedList<>();
     private static String mode;
     private static int batchSize = 2; // Change this to the desired batch size
-    private static List<Game> games = new ArrayList<>();
+    //private static List<Game> games = new ArrayList<>();
     private static Map<Socket, Integer> playerLevels = new HashMap<>();
     private static Map<String, String> players = new HashMap<>(); // Map to store usernames and passwords
     private static Map<String, Socket> sessionTokens = new HashMap<>(); // Map to store session tokens
@@ -197,13 +197,14 @@ public class GameServer {
             Socket player2 = players.get(1);
     
             // Create a new game instance with the provided players
-            Game game = new Game(player1, player2, lock); // Pass playerChoices, lock, and gameReady
+            //Game game = new Game(player1, player2, lock); // Pass playerChoices, lock, and gameReady
   
-            games.add(game);
+           // games.add(game);
     
             System.out.println("New game started with 2 players.");
 
-            game.start(player1, player2, lock);
+            //game.start(player1, player2, lock);
+            handleGameMode(player1,player2);
     
             // Start the game instance in a separate thread
             //new Thread(game::start).start();
@@ -239,8 +240,8 @@ public class GameServer {
                     writer2.println("You are matched with an opponent. Get ready for the game!");
     
                     // Create a new game instance with the paired players
-                    Game game = new Game(player1, player2,lock); // Pass playerChoices, lock, and gameReady
-                    games.add(game);
+                    //Game game = new Game(player1, player2,lock); // Pass playerChoices, lock, and gameReady
+                    //games.add(game);
                     // game.start();
     
                     System.out.println("New game started between players with similar levels.");
@@ -257,6 +258,77 @@ public class GameServer {
         }
     }
     
+
+    private static void handleGameMode(Socket player1, Socket player2) {
+        try {
+            BufferedReader reader1 = new BufferedReader(new InputStreamReader(player1.getInputStream()));
+            BufferedReader reader2 = new BufferedReader(new InputStreamReader(player2.getInputStream()));
+            PrintWriter writer1 = new PrintWriter(player1.getOutputStream(), true);
+            PrintWriter writer2 = new PrintWriter(player2.getOutputStream(), true);
+    
+            // Welcome message and instructions
+            writer1.println("Welcome to Rock, Paper, Scissors game! Please choose your move:");
+            writer2.println("Welcome to Rock, Paper, Scissors game! Please choose your move:");
+            writer1.println("1. Rock");
+            writer1.println("2. Paper");
+            writer1.println("3. Scissors");
+            writer2.println("1. Rock");
+            writer2.println("2. Paper");
+            writer2.println("3. Scissors");
+    
+            // Read players' choices
+            int player1Choice = Integer.parseInt(reader1.readLine());
+            int player2Choice = Integer.parseInt(reader2.readLine());
+    
+            // Determine the winner
+            int winner = determineWinner(player1Choice, player2Choice);
+    
+            // Send the result to both players
+            if (winner == 0) {
+                writer1.println("It's a tie! Both chose the same move.");
+                writer2.println("It's a tie! Both chose the same move.");
+            } else if (winner == 1) {
+                writer1.println("You win! Your opponent chose " + translateChoice(player2Choice));
+                writer2.println("You lose! Your opponent chose " + translateChoice(player1Choice));
+            } else {
+                writer1.println("You lose! Your opponent chose " + translateChoice(player2Choice));
+                writer2.println("You win! Your opponent chose " + translateChoice(player1Choice));
+            }
+        } catch (IOException ex) {
+            System.out.println("Error during game mode: " + ex.getMessage());
+        }
+    }
+    
+    
+    private static int determineWinner(int playerChoice, int computerChoice) {
+        // Returns:
+        // 0 for tie
+        // 1 for player win
+        // 2 for computer win
+        if (playerChoice == computerChoice) {
+            return 0; // Tie
+        } else if ((playerChoice == 1 && computerChoice == 3) ||
+                   (playerChoice == 2 && computerChoice == 1) ||
+                   (playerChoice == 3 && computerChoice == 2)) {
+            return 1; // Player wins
+        } else {
+            return 2; // Computer wins
+        }
+    }
+    
+    private static String translateChoice(int choice) {
+        // Translate choice number to corresponding move
+        switch (choice) {
+            case 1:
+                return "Rock";
+            case 2:
+                return "Paper";
+            case 3:
+                return "Scissors";
+            default:
+                return "Unknown";
+        }
+    }
 
     private static void updatePlayerLevels(List<Socket> team1, List<Socket> team2, int winner) {
         // Update player levels based on game outcome

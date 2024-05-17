@@ -1,8 +1,8 @@
-user1 password1 
-user2 password2 
-user3 password3 
-user4 password4 
-user5 password5 
-user6 password6 
-user7 password7 
-user8 password8 
+u1 p1 
+u2 p2 
+u3 p3 
+u4 p4 
+u5 p5 
+u6 p6 
+u7 p7 
+u8 p8 
