@@ -36,6 +36,7 @@ public class GameClient {
             // Choose a mode
             String modeChoice = reader.readLine();
             writer.println(modeChoice);
+           
 
             // Handle queue and game messages
             handleGameChoices(reader, writer, serverReader);
@@ -72,39 +73,44 @@ public class GameClient {
         String serverMessage;
         boolean playerMadeMove = false;
     
-        while ((serverMessage = serverReader.readLine()) != null) {
+        while ((serverMessage = serverReader.readLine()) != null  ) {
             System.out.println(serverMessage);
             
             if (serverMessage.startsWith("Welcome to Rock, Paper, Scissors game!")) {
                 // Print instructions
                 for (int i = 0; i < 3; i++) {
-                    //writer.println("iou");
                     System.out.println(serverReader.readLine());
-                    //writer.println("lala");
                 }
-                //writer.println("whateverrrrr");
                 // Read and send player's choice
-                int choice = Integer.parseInt(reader.readLine());
-                //writer.println("whatever");
-                writer.println(choice);
+                String choiceStr = reader.readLine();
+                String choiceStr2 = choiceStr;
+                writer.println(choiceStr);
+                writer.println(choiceStr2);
+                writer.flush(); // Ensure the choice is sent immediately
+                System.out.println(choiceStr);
+                System.out.println(choiceStr2);
                 playerMadeMove = true; // Set flag to indicate player has made a move
                 break; // Break the loop after sending the choice
             }
         }
-    
-        // Handle messages from the server after the player has made a choice
-        while (playerMadeMove && (serverMessage = serverReader.readLine()) != null) {
-            System.out.println(serverMessage);
+        System.out.println("Out of while");
+        
+        // // // Handle messages from the server after the player has made a choice
+        // while (playerMadeMove && serverMessage!= null) {
+        //     //System.out.println(serverMessage);
             
-            if (serverMessage.startsWith("Opponent has made a move. Waiting for your move...")) {
-                // Read opponent's choice and send it to the server
-                System.out.println("Opponent has made a move. Please make your move.");
-                String opponentChoice = reader.readLine();
-                writer.println(opponentChoice);
-                break; // Break the loop after sending the opponent's choice
-            }
-        }
+        //    //if (serverMessage.startsWith("Opponent has made a move. Waiting for your move...")) {
+        //         // Read opponent's choice and send it to the server
+        //         System.out.println("Opponent has made a move. Please make your move.");
+        //         String opponentChoice = reader.readLine();
+        //         writer.println(opponentChoice);
+        //         writer.flush(); // Ensure the choice is sent immediately
+        //         break; // Break the loop after sending the opponent's choice
+        //     //}
+        // }
     }
+    
+    
     
     
     

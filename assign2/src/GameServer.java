@@ -275,29 +275,47 @@ public class GameServer {
             writer2.println("1. Rock");
             writer2.println("2. Paper");
             writer2.println("3. Scissors");
-    
-            // Read players' choices
-            int player1Choice = Integer.parseInt(reader1.readLine());
-            int player2Choice = Integer.parseInt(reader2.readLine());
+            
+
+      
+            System.out.println("Before reading Player 1 choice from input stream"); 
+            String player1Choice = null;
+            System.out.println("before while " + player1Choice);
+            while(player1Choice==null){
+                //System.out.println("in while before command " + player1Choice);
+                player1Choice = reader1.readLine();
+                //System.out.println("in while after command " + player1Choice);
+            }
+            System.out.println("Player 1 choice received: " + player1Choice);
+            System.out.println("Translated Player 1 choice: " + translateChoice(Integer.parseInt(player1Choice)));
+            System.out.println("Player 1 choice: " + translateChoice(Integer.parseInt(player1Choice)));
+           String player2Choice = null;
+            while(player2Choice==null){
+                player2Choice = reader2.readLine();
+            }
+            System.out.println("Player 2 choice: " + translateChoice(Integer.parseInt(player2Choice)));
     
             // Determine the winner
-            int winner = determineWinner(player1Choice, player2Choice);
-    
+            int winner = determineWinner(Integer.parseInt(player1Choice), Integer.parseInt(player2Choice));
+            System.out.println("Winner:"+winner);
+            
             // Send the result to both players
             if (winner == 0) {
                 writer1.println("It's a tie! Both chose the same move.");
                 writer2.println("It's a tie! Both chose the same move.");
             } else if (winner == 1) {
-                writer1.println("You win! Your opponent chose " + translateChoice(player2Choice));
-                writer2.println("You lose! Your opponent chose " + translateChoice(player1Choice));
+                writer1.println("You win! Your opponent chose " + translateChoice(Integer.parseInt(player2Choice)));
+                writer2.println("You lose! Your opponent chose " + translateChoice(Integer.parseInt(player1Choice)));
             } else {
-                writer1.println("You lose! Your opponent chose " + translateChoice(player2Choice));
-                writer2.println("You win! Your opponent chose " + translateChoice(player1Choice));
+                writer1.println("You lose! Your opponent chose " + translateChoice(Integer.parseInt(player2Choice)));
+                writer2.println("You win! Your opponent chose " + translateChoice(Integer.parseInt(player1Choice)));
             }
+    
         } catch (IOException ex) {
             System.out.println("Error during game mode: " + ex.getMessage());
         }
     }
+    
     
     
     private static int determineWinner(int playerChoice, int computerChoice) {
