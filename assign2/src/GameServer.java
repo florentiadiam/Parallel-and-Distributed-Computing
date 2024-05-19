@@ -1,11 +1,21 @@
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 
 public class GameServer {
     private static Queue<Socket> simpleQueue = new LinkedList<>();
@@ -259,78 +269,115 @@ public class GameServer {
     }
     
 
-    private static void handleGameMode(Socket player1, Socket player2) {
-        try {
-            BufferedReader reader1 = new BufferedReader(new InputStreamReader(player1.getInputStream()));
-            BufferedReader reader2 = new BufferedReader(new InputStreamReader(player2.getInputStream()));
-            PrintWriter writer1 = new PrintWriter(player1.getOutputStream(), true);
-            PrintWriter writer2 = new PrintWriter(player2.getOutputStream(), true);
-    
-            // Welcome message and instructions
-            writer1.println("Welcome to Rock, Paper, Scissors game! Please choose your move:");
-            writer2.println("Welcome to Rock, Paper, Scissors game! Please choose your move:");
-            writer1.println("1. Rock");
-            writer1.println("2. Paper");
-            writer1.println("3. Scissors");
-            writer2.println("1. Rock");
-            writer2.println("2. Paper");
-            writer2.println("3. Scissors");
-            
 
-      
-            System.out.println("Before reading Player 1 choice from input stream"); 
-            String player1Choice = null;
-            System.out.println("before while " + player1Choice);
-            while(player1Choice==null){
-                //System.out.println("in while before command " + player1Choice);
-                player1Choice = reader1.readLine();
-                //System.out.println("in while after command " + player1Choice);
+  private static void handleGameMode(Socket player1, Socket player2) {
+    try {
+        BufferedReader reader1 = new BufferedReader(new InputStreamReader(player1.getInputStream()));
+        BufferedReader reader2 = new BufferedReader(new InputStreamReader(player2.getInputStream()));
+        PrintWriter writer1 = new PrintWriter(player1.getOutputStream(), true);
+        PrintWriter writer2 = new PrintWriter(player2.getOutputStream(), true);
+
+        // Welcome message and instructions
+        CountDownLatch latch = new CountDownLatch(2);
+
+        final String[] player1Choice = new String[1];
+        final String[] player2Choice = new String[1];
+
+        Thread t1 = new Thread(() -> {
+            try {
+                writer1.println("Welcome to Rock, Paper, Scissors game! Please choose your move:");
+                writer1.println("1. Rock");
+                writer1.println("2. Paper");
+                writer1.println("3. Scissors");
+                player1Choice[0] = reader1.readLine();
+                System.out.println("Player 1 choice received: " + player1Choice[0]);
+            } catch (IOException e) {
+                System.out.println("Error reading Player 1 choice: " + e.getMessage());
+            } finally {
+                latch.countDown();
             }
-            System.out.println("Player 1 choice received: " + player1Choice);
-            System.out.println("Translated Player 1 choice: " + translateChoice(Integer.parseInt(player1Choice)));
-            System.out.println("Player 1 choice: " + translateChoice(Integer.parseInt(player1Choice)));
-           String player2Choice = null;
-            while(player2Choice==null){
-                player2Choice = reader2.readLine();
+        });
+
+        Thread t2 = new Thread(() -> {
+            try {
+                writer2.println("Welcome to Rock, Paper, Scissors game! Please choose your move:");
+                writer2.println("1. Rock");
+                writer2.println("2. Paper");
+                writer2.println("3. Scissors");
+                player2Choice[0] = reader2.readLine();
+                System.out.println("Player 2 choice received: " + player2Choice[0]);
+            } catch (IOException e) {
+                System.out.println("Error reading Player 2 choice: " + e.getMessage());
+            } finally {
+                latch.countDown();
             }
-            System.out.println("Player 2 choice: " + translateChoice(Integer.parseInt(player2Choice)));
-    
-            // Determine the winner
-            int winner = determineWinner(Integer.parseInt(player1Choice), Integer.parseInt(player2Choice));
-            System.out.println("Winner:"+winner);
-            
-            // Send the result to both players
-            if (winner == 0) {
-                writer1.println("It's a tie! Both chose the same move.");
-                writer2.println("It's a tie! Both chose the same move.");
-            } else if (winner == 1) {
-                writer1.println("You win! Your opponent chose " + translateChoice(Integer.parseInt(player2Choice)));
-                writer2.println("You lose! Your opponent chose " + translateChoice(Integer.parseInt(player1Choice)));
-            } else {
-                writer1.println("You lose! Your opponent chose " + translateChoice(Integer.parseInt(player2Choice)));
-                writer2.println("You win! Your opponent chose " + translateChoice(Integer.parseInt(player1Choice)));
-            }
-    
+        });
+
+        // Start both threads simultaneously
+        t1.start();
+        t1.join();
+        t2.start();
+        t2.join();
+
+        // Wait for both threads to finish
+        latch.await();
+
+        // Check if both players made their choices
+        if (player1Choice[0] == null || player2Choice[0] == null) {
+            // Handle the case where one or both players disconnected before making a choice
+            writer1.println("Error: One or both players disconnected.");
+            writer2.println("Error: One or both players disconnected.");
+            return;
+        }
+        
+        int winner = determineWinner(Integer.parseInt(player1Choice[0]), Integer.parseInt(player2Choice[0]));
+        System.out.println("Winner: Player " + winner);
+        
+        writer1.println("Player1 played: " + translateChoice(Integer.parseInt(player1Choice[0])) + " Player2 played: " + translateChoice(Integer.parseInt(player2Choice[0])));
+        writer2.println("Player1 played: " + translateChoice(Integer.parseInt(player1Choice[0])) + " Player2 played: " + translateChoice(Integer.parseInt(player2Choice[0])));
+        
+        if(winner==1){
+            writer1.println("Congrats! You won!");
+            writer2.println("You lost! Try next time!");
+        }
+        if(winner==2){
+            writer2.println("Congrats! You won!");
+            writer1.println("You lost! Try next time!");
+        }
+        if(winner==0){
+            writer1.println("It's a tie!");
+            writer2.println("It's a tie!");
+        }
+        
+        // Process the choices and determine the winner...
+        
+    } catch (IOException | InterruptedException ex) {
+        System.out.println("Error during game mode: " + ex.getMessage());
+    } finally {
+        try {
+            player1.close();
+            player2.close();
         } catch (IOException ex) {
-            System.out.println("Error during game mode: " + ex.getMessage());
+            System.out.println("Error closing player sockets: " + ex.getMessage());
         }
     }
+}
+
+
     
-    
-    
-    private static int determineWinner(int playerChoice, int computerChoice) {
+    private static int determineWinner(int player1Choice, int player2Choice) {
         // Returns:
         // 0 for tie
         // 1 for player win
         // 2 for computer win
-        if (playerChoice == computerChoice) {
+        if (player1Choice == player2Choice) {
             return 0; // Tie
-        } else if ((playerChoice == 1 && computerChoice == 3) ||
-                   (playerChoice == 2 && computerChoice == 1) ||
-                   (playerChoice == 3 && computerChoice == 2)) {
-            return 1; // Player wins
+        } else if ((player1Choice == 1 && player2Choice == 3) ||
+                   (player1Choice == 2 && player2Choice == 1) ||
+                   (player1Choice == 3 && player2Choice == 2)) {
+            return 1; // Player1 wins
         } else {
-            return 2; // Computer wins
+            return 2; // player2 wins
         }
     }
     

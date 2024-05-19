@@ -3,6 +3,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "GameServer",
+      "request": "launch",
+      "mainClass": "GameServer",
+      "projectName": "g16_8b3c865e"
+    },
+    {
+      "type": "java",
       "name": "matrixmultiplicationJava",
       "request": "launch",
       "mainClass": "matrixmultiplicationJava",
